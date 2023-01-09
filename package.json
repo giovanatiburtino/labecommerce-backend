@@ -4,7 +4,8 @@
   "description": "Projeto backend",
   "main": "index.js",
   "scripts": {
-    "start": "tsc && node ./build/index.js"
+    "start": "tsc && node ./build/index.js",
+    "database": "tsc && node ./build/database.js"
   },
   "repository": {
     "type": "git",
