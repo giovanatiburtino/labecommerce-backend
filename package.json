@@ -1,0 +1,20 @@
+{
+  "name": "labecommerce-backend",
+  "version": "1.0.0",
+  "description": "Projeto backend",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "start": "node index.js bananinha"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/giovanatiburtino/labecommerce-backend.git"
+  },
+  "author": "giovana tiburtino",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/giovanatiburtino/labecommerce-backend/issues"
+  },
+  "homepage": "https://github.com/giovanatiburtino/labecommerce-backend#readme"
+}
