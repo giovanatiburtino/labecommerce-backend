@@ -1,3 +1,4 @@
+-- Active: 1673871648594@@127.0.0.1@3306
 
 CREATE TABLE users (
     id TEXT PRIMARY KEY UNIQUE NOT NULL,
@@ -108,3 +109,42 @@ WHERE id = "4";
 UPDATE products
 SET category = "CASUAL"
 WHERE id = "p006";
+
+
+
+
+CREATE TABLE purchases(
+    id TEXT PRIMARY KEY UNIQUE NOT NULL,
+    total_price REAL UNIQUE NOT NULL,
+    paid INTEGER NOT NULL,
+    delivered_at TEXT,
+    buyer_id TEXT NOT NULL,
+    FOREIGN KEY (buyer_id) REFERENCES users (id)
+);
+
+PRAGMA table_info ("purchases");
+
+SELECT * FROM purchases;
+
+
+
+INSERT INTO purchases(id, total_price, paid, buyer_id)
+VALUES
+    ("pur01", 1300.50, 0, "1"),
+    ("pur02", 1050.00, 0, "1"),
+    ("pur03", 1250.00, 0, "2"),
+    ("pur04", 1100.50, 0, "2");
+
+
+
+
+UPDATE purchases
+SET delivered_at = DATETIME('now')
+WHERE id = "pur01";
+
+
+
+SELECT * FROM purchases
+INNER JOIN users
+ON purchases.buyer_id = users.id
+WHERE users.id = "2";
