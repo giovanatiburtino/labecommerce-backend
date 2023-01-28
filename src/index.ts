@@ -1,7 +1,7 @@
 import express, { Request, Response } from 'express'
 import cors from 'cors'
 import { products, purchases, users } from './database'
-import { TProduct, TPurchase, TUser } from './types'
+import { TProduct, TPurchase, TPurchaseAndProducts, TUser } from './types'
 import { db } from './database/knex'
 
 const app = express()
@@ -17,7 +17,7 @@ app.listen(3003, () => {
 
 app.get('/users', async (req: Request, res: Response) => {
     try {
-        const result = await db.raw(`SELECT * FROM users`)
+        const result = await db("users")
 
         res.status(200).send(result)
     } catch (error: any) {
@@ -40,7 +40,7 @@ app.get('/users', async (req: Request, res: Response) => {
 
 app.get('/products', async (req: Request, res: Response) => {
     try {
-        const result = await db.raw(`SELECT * FROM products`)
+        const result = await db("products")
 
         res.status(200).send(result)
 
@@ -67,17 +67,13 @@ app.get('/products/search', async (req: Request, res: Response) => {
     try {
         const q = req.query.q as string
 
-        if(q !== undefined){
-            if(q.length < 1){
-                res.status(400)
-                throw new Error ("O campo de pesquisa deve possuir pelo menos um caractere")
-            }
+        
+        if(q.length < 1){
+            res.status(400)
+            throw new Error ("O campo de pesquisa deve possuir pelo menos um caractere")
         }
-
-        const result = await db.raw(`
-        SELECT * FROM products
-        WHERE name LIKE "%${q}%";
-        `)
+        
+        const result = await db.select("*").from("products").whereLike("name", `%${q}%`)
 
         if(result.length < 1){
             res.status(404)
@@ -109,13 +105,18 @@ app.post('/users', async (req: Request, res: Response) => {
     try {
         const { id, email, name, password } = req.body as TUser
 
+        if (!id || !email || !name || !password) {
+            res.status(400)
+            throw new Error("Dados inválidos. Verifique se não há nenhum campo em branco.")
+        }
 
-        // if (!id || !email || !name || !password) {
-        //     res.status(400)
-        //     throw new Error("Dados inválidos. Verifique se não há nenhum campo em branco.")
-        // }
+        const idExists = await db.select("*").from("users").where({id: id})
 
-        
+        if(idExists.length >= 1){
+            res.status(400)
+            throw new Error ("O id inserido já existe. Insira outro por favor.")
+        }
+
         if(typeof id !== "string"){
             res.status(400)
             throw new Error("'Id' deve ser um texto.")
@@ -138,9 +139,7 @@ app.post('/users', async (req: Request, res: Response) => {
             throw new Error("Parâmetro 'email' inválido. O email deve conter '@'.")
         }
         
-
-        const emailExists = await db.raw(`SELECT * FROM users
-                                        WHERE email = "${email}"`)
+        const emailExists = await db.select("*").from("users").where({email: email})
 
         if(emailExists.length >= 1){
             res.status(400)
@@ -154,12 +153,16 @@ app.post('/users', async (req: Request, res: Response) => {
         }
     
 
-        await db.raw(`
-        INSERT INTO users(id, name, email, password)
-        VALUES ("${id}", "${name}", "${email}","${password}")
-        `)
+        const newUser: TUser = {
+            id: id,
+            name: name,
+            email: email,
+            password: password
+        }
 
-        res.status(200).send("Usuário cadastrado com sucesso!")
+        await db("users").insert(newUser)
+
+        res.status(201).send("Usuário cadastrado com sucesso!")
 
     } catch (error:any) {
         console.log(error)
@@ -184,54 +187,58 @@ app.post('/product', async (req: Request, res: Response) => {
     try {
         const { id, name, price, description, image_url } = req.body as TProduct
 
-        if(!id){
-            if(typeof id !== "string"){
-                res.status(400)
-                throw new Error ("'Id' deve ser uma string.")
-            }
+        if(!id || !name || isNaN(price) || !description || !image_url){
+            res.status(400)
+            throw new Error ("Dados inválidos. Verifique se não há nenhum campo em branco.")
         }
 
-        const idExists = await db.raw(`SELECT * FROM products
-                                        WHERE id = "${id}"`)
+        
+        if(typeof id !== "string"){
+            res.status(400)
+            throw new Error ("'Id' deve ser uma string.")
+        }
+    
+        const idExists = await db.select("*").from("products").where({id: id})
 
         if(idExists.length >= 1){
             res.status(400)
-            throw new Error ("O produto já existe. Insira outro por favor.")
+            throw new Error ("O id do produto já existe. Insira outro por favor.")
         }
 
-        if(!name){
-            if(typeof name !== "string"){
-                res.status(400)
-                throw new Error ("O nome deve ser um texto.")
-            }
-        }
 
-        if(!price){
-            if(typeof price !== "number"){
-                res.status(400)
-                throw new Error ("O Preço deve conter um número.")
-            }
-        }
-
-        if(!description){
-            if(typeof description !== "string"){
-                res.status(400)
-                throw new Error ("A descrição do produto deve conter um texto.")
-            }
-        }
-
-        if(!image_url){
+        if(typeof name !== "string"){
             res.status(400)
-            throw new Error ("O campo da url da imagem está vazio.")
+            throw new Error ("O nome deve ser um texto.")
         }
+    
+
+        
+        if(typeof price !== "number"){
+            res.status(400)
+            throw new Error ("O Preço deve conter um número.")
+        }
+        
+
+        if(typeof description !== "string"){
+            res.status(400)
+            throw new Error ("A descrição do produto deve conter um texto.")
+        }
+        
 
         if(typeof image_url !== "string"){
             res.status(400)
             throw new Error ("A url da imagem deve ser um texto.")
         }
 
-        await db.raw(`INSERT INTO products (id, name, price, description, image_url)
-                    VALUES ("${id}", "${name}", ${price}, "${description}", "${image_url}")`)
+        const newProduct = {
+            id: id,
+            name: name,
+            price: price,
+            description: description,
+            image_url: image_url
+        }
+
+        await db("products").insert(newProduct)
     
         res.status(201).send("Produto cadastrado com sucesso!")
         
@@ -256,54 +263,65 @@ app.post('/product', async (req: Request, res: Response) => {
 
 app.post('/purchases', async (req: Request, res: Response) => {
     try {
-        const { id, buyer_id, total_price, paid } = req.body as TPurchase
+        const newIdPurchase = req.body.id
+        const newBuyer = req.body.buyer_id
+        const newProducts = req.body.products
+        
+        const { quantity } = newProducts
 
-        if(!id){
+        if(!newIdPurchase){
             res.status(400)
             throw new Error ("O campo id deve estar preenchido.")
-        } else if (typeof id !== "string"){
+        } else if (typeof newIdPurchase !== "string"){
             res.status(400)
             throw new Error ("O id do usuário deve ser uma string")
         }
 
-        const buyerExists = await db.raw(`SELECT * FROM users
-                                          WHERE id = "${buyer_id}"`)
+        const purchaseExists = await db.select("*").from("purchases").where({id: newIdPurchase})
 
-        if(buyerExists.length === 0){
-            res.status(404)
-            throw new Error ("O id do usuário tem que estar cadastrado.")
-        }
-
-        const purchaseExists = await db.raw(`SELECT * FROM purchases
-                                            WHERE id = "${id}"`)
-
-        if(purchaseExists.length >= 1){
+        if(purchaseExists.length > 1){
             res.status(400)
             throw new Error ("Já existe uma compra com este id.")
         }
-        
 
-        if(!total_price){
-            res.status(400)
-            throw new Error ("O preço total deve estar preenchido.")
-        } else if (typeof total_price !== "number"){
-            res.status(400)
-            throw new Error ("O preço total deve ser um número.")
+        let newPriceTotal = 0
+
+        const newPurchase = {
+            id: newIdPurchase,
+            buyer_id: newBuyer,
+            total_price: newPriceTotal
         }
 
-        
-        if (typeof paid !== "number"){
-            res.status(400)
-            throw new Error ("O campo paid deve ser preenchido com um número.")
-        }
+        await db("purchases").insert(newPurchase)
 
-    
-        await db.raw(`INSERT INTO purchases (id, buyer_id, total_price, paid)
-                    VALUES ("${id}", "${buyer_id}", ${total_price}, ${paid})
-                    `)
+        const products = []
+
+
+        for(let item of newProducts){
+                const [productList] = await db("products").where({id: item.id})
+                newPriceTotal += productList.price * item.quantity
+
+                await db("purchases_products").insert({purchase_id: newIdPurchase, product_id: item.id, quantity: item.quantity})
+
+                const completeProduct = {
+                    ...productList,
+                    quantity
+                }
+
+                products.push(completeProduct)
+            }
+
+            await db("purchases").update({total_price: newPriceTotal}).where({id: newIdPurchase})
+
+            const result = {
+                id: newPurchase.id,
+                buyer: newPurchase.buyer_id,
+                totalPrice: newPriceTotal,
+                products
+            }
 
         
-        res.status(201).send("Compra realizada com sucesso")
+        res.status(201).send({message: "Pedido realizado com sucesso", purchase: result})
         
     } catch (error) {
         console.log(error)
@@ -360,21 +378,18 @@ app.get('/products/:id', async (req: Request, res: Response) => {
 app.get('/users/:id/purchases', async (req: Request, res: Response) => {
     try {
         const id = req.params.id 
-
-        const result = await db.raw(`SELECT * FROM users
-                                     WHERE id = "${id}"`)  
+                                     
+        const result = await db.select("*").from("users").where({id: id})
 
         if(result.length < 1){
             res.status(404)
             throw new Error ("Usuário não encontrado. Verifique a id.")
         }
 
-        const isAnyPurchase = await db.raw(`SELECT * FROM purchases
-                                                WHERE buyer_id = "${id}"
-                                                AND total_price > 0`)
+        const isAnyPurchase = await db.select("*").from("purchases").where({buyer_id: id}).andWhere("total_price", ">", 0)
 
         if(isAnyPurchase.length < 1){
-            res.status(400)
+            res.status(404)
             throw new Error ("O usuário não possui nenhuma compra.")
         }
 
@@ -395,7 +410,48 @@ app.get('/users/:id/purchases', async (req: Request, res: Response) => {
     }
 })
 
+app.get("/purchases/:id", async (req: Request, res: Response) => {
+    try {
+        const id = req.params.id 
+                                     
+        const [ purchase ] = await db("purchases").select(
+        "purchases.id AS purchaseId",
+        "users.id AS buyerID",
+        "users.name AS buyerName",
+        "users.email AS buyerEmail", 
+        "purchases.total_price AS totalPrice",
+        "purchases.created_at AS createdAt",
+        "purchases.paid AS paid",
+        ).rightJoin("users", "purchases.buyer_id", "=", "users.id").where({"purchases.id": id})
 
+
+        const [ productsList ] = await db("purchases_products").select(
+            "purchases_products.product_id AS id",
+            "products.name AS name",
+            "products.price AS price",
+            "products.description AS description",
+            "products.image_url AS imageUrl",
+            "purchases_products.quantity AS quantity"
+        ).innerJoin("products", "purchases_products.product_id", "=", "products.id").where({"purchases_products.purchase_id": id})
+
+        const result = {...purchase, products: productsList}
+
+        res.status(200).send(result)
+    } catch (error) {
+        console.log(error)
+
+        if(res.statusCode === 200){
+            res.status(500)
+        }
+
+        if(error instanceof Error){
+            res.send(error.message)
+        } else {
+            res.send("Erro inesperado.")
+        }
+    }
+    
+})
 
 
 app.delete('/users/:id', async (req: Request, res: Response) => {
@@ -452,6 +508,37 @@ app.delete('/products/:id', async (req: Request, res: Response) => {
         res.status(200).send("Produto deletado com sucesso!")
         
     } catch (error:any) {
+        console.log(error)
+
+        if(res.statusCode === 200){
+            res.status(500)
+        }
+
+        if(error instanceof Error){
+            res.send(error.message)
+        } else {
+            res.send("Erro inesperado.")
+        }
+    }
+})
+
+
+app.delete("/purchases/:id", async (req: Request, res: Response) => {
+    try {
+        const idToDelete = req.params.id
+
+        const [ result ] = await db.select("*").from("purchases").where({id: idToDelete})
+
+        if (!result) {
+            res.status(404)
+            throw new Error("'id' não encontrada")
+        }
+
+        await db.delete().from("purchases").where({id: idToDelete})
+
+        res.status(200).send({ message: "Compra deletada com sucesso!" })
+
+    } catch (error) {
         console.log(error)
 
         if(res.statusCode === 200){

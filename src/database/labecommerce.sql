@@ -125,19 +125,21 @@ CREATE TABLE purchases(
     buyer_id TEXT NOT NULL,
     total_price REAL NOT NULL,
     created_at TEXT DEFAULT (DATETIME()) NOT NULL,
-    paid INTEGER NOT NULL,
+    paid INTEGER DEFAULT 0 NOT NULL,
     FOREIGN KEY (buyer_id) REFERENCES users (id)
 );
+
+DROP TABLE purchases;
 
 PRAGMA table_info ("purchases");
 
 
-INSERT INTO purchases(id, buyer_id, total_price, paid)
+INSERT INTO purchases(id, buyer_id, total_price)
 VALUES
-    ("pur01", "u001", 3597.00, 0),
-    ("pur02", "u001", 4254.50, 0),
-    ("pur03", "u002", 1359.98, 0),
-    ("pur04", "u002", 999.99, 0);
+    ("pur01", "u001", 3597.00),
+    ("pur02", "u001", 4254.50),
+    ("pur03", "u002", 1359.98),
+    ("pur04", "u002", 999.99);
 
 
 SELECT * FROM purchases;
