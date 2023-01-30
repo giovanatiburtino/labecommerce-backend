@@ -32,5 +32,6 @@ export const purchases: TPurchase[] = [
         id: "pur01",
         buyer_id: "nikeAFC1",
         total_price: 100,
+        products: []
     }
 ]

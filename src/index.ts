@@ -263,66 +263,48 @@ app.post('/product', async (req: Request, res: Response) => {
 
 app.post('/purchases', async (req: Request, res: Response) => {
     try {
-        const newIdPurchase = req.body.id
-        const newBuyer = req.body.buyer_id
-        const newProducts = req.body.products
-        
-        const { quantity } = newProducts
+        const {id, total_price, buyer_id} = req.body
+    
+        const [idExists] = await db("purchases").where({id: id})
 
-        if(!newIdPurchase){
+        if(idExists){
             res.status(400)
-            throw new Error ("O campo id deve estar preenchido.")
-        } else if (typeof newIdPurchase !== "string"){
-            res.status(400)
-            throw new Error ("O id do usuário deve ser uma string")
+            throw new Error ("Id já cadastrado.")
         }
 
-        const purchaseExists = await db.select("*").from("purchases").where({id: newIdPurchase})
-
-        if(purchaseExists.length > 1){
+        if(!id || !total_price || !buyer_id){
             res.status(400)
-            throw new Error ("Já existe uma compra com este id.")
+            throw new Error ("Falta adicionar a id, total price ou buyer id")
         }
-
-        let newPriceTotal = 0
 
         const newPurchase = {
-            id: newIdPurchase,
-            buyer_id: newBuyer,
-            total_price: newPriceTotal
+            id: id,
+            total_price: total_price,
+            buyer_id: buyer_id, 
         }
+
 
         await db("purchases").insert(newPurchase)
 
-        const products = []
+       
+        const products: TPurchaseAndProducts[] = await db("purchases_products")
 
-
-        for(let item of newProducts){
-                const [productList] = await db("products").where({id: item.id})
-                newPriceTotal += productList.price * item.quantity
-
-                await db("purchases_products").insert({purchase_id: newIdPurchase, product_id: item.id, quantity: item.quantity})
-
-                const completeProduct = {
-                    ...productList,
-                    quantity
-                }
-
-                products.push(completeProduct)
+        for(let item of products){
+            const newProductsPurchase = {
+                purchase_id: id,
+                product_id: item.product_id,
+                quantity: item.quantity
             }
 
-            await db("purchases").update({total_price: newPriceTotal}).where({id: newIdPurchase})
+            await db("purchases_products").insert(newProductsPurchase)
 
-            const result = {
-                id: newPurchase.id,
-                buyer: newPurchase.buyer_id,
-                totalPrice: newPriceTotal,
-                products
-            }
+            // const [addItem] = await db("products").where({id: newProductsPurchase.product_id})
 
-        
-        res.status(201).send({message: "Pedido realizado com sucesso", purchase: result})
-        
+            // productsList.push(addItem)
+        }
+
+         res.status(201).send({message: "Pedido realizado com sucesso"})
+
     } catch (error) {
         console.log(error)
 
@@ -413,6 +395,13 @@ app.get('/users/:id/purchases', async (req: Request, res: Response) => {
 app.get("/purchases/:id", async (req: Request, res: Response) => {
     try {
         const id = req.params.id 
+
+        const purchaseExists = await db.select("*").from("purchases").where({id: id})
+
+        if(purchaseExists.length < 1){
+            res.status(404)
+            throw new Error ("Pedido não encontrado. Verifique a id.")
+        }
                                      
         const [ purchase ] = await db("purchases").select(
         "purchases.id AS purchaseId",
@@ -466,10 +455,10 @@ app.delete('/users/:id', async (req: Request, res: Response) => {
             throw new Error ("Usuário não encontrado. Verifique a id.")
         }
 
-        const deleteUser = await db.raw(`DELETE FROM users
+        await db.raw(`DELETE FROM users
                                         WHERE id = "${id}"`)
 
-        res.status(200).send(deleteUser)
+        res.status(200).send({message: "Usuário deletado com sucesso"})
 
     } catch (error:any) {
         console.log(error)
