@@ -112,7 +112,7 @@ app.post('/users', async (req: Request, res: Response) => {
 
         const idExists = await db.select("*").from("users").where({id: id})
 
-        if(idExists.length >= 1){
+        if(idExists.length === 1){
             res.status(400)
             throw new Error ("O id inserido já existe. Insira outro por favor.")
         }
@@ -141,7 +141,7 @@ app.post('/users', async (req: Request, res: Response) => {
         
         const emailExists = await db.select("*").from("users").where({email: email})
 
-        if(emailExists.length >= 1){
+        if(emailExists.length === 1){
             res.status(400)
             throw new Error ("O email inserido já existe. Insira outro por favor.")
         }
@@ -200,7 +200,7 @@ app.post('/product', async (req: Request, res: Response) => {
     
         const idExists = await db.select("*").from("products").where({id: id})
 
-        if(idExists.length >= 1){
+        if(idExists.length === 1){
             res.status(400)
             throw new Error ("O id do produto já existe. Insira outro por favor.")
         }
@@ -327,10 +327,7 @@ app.get('/products/:id', async (req: Request, res: Response) => {
     try {
         const id = req.params.id
 
-        const result = await db.raw(`
-            SELECT * FROM products
-            WHERE id = "${id}"
-        `)
+        const result = await db("products").whereLike("id", `${id}`)
 
         if(result.length < 1){
             res.status(404)
@@ -447,16 +444,14 @@ app.delete('/users/:id', async (req: Request, res: Response) => {
     try {
         const id = req.params.id
 
-        const result = await db.raw(`SELECT * FROM users
-                                    WHERE id = "${id}"`)
+        const result = await db("users").where({id: id})
 
         if(result.length < 1){
             res.status(404)
             throw new Error ("Usuário não encontrado. Verifique a id.")
         }
 
-        await db.raw(`DELETE FROM users
-                                        WHERE id = "${id}"`)
+        await db.delete().from("users").where({id: id})
 
         res.status(200).send({message: "Usuário deletado com sucesso"})
 
@@ -482,17 +477,14 @@ app.delete('/products/:id', async (req: Request, res: Response) => {
     try {
         const id = req.params.id
 
-        const result = await db.raw(`SELECT * FROM products
-                                     WHERE id = "${id}"`)
+        const [ result ] = await db("products").where({id: id})
 
-        if(result.length < 1){
+        if(!result){
             res.status(404)
             throw new Error ("Produto não encontrado. Verifique a 'id'.")
         }
 
-        await db.raw(`DELETE FROM products
-                    WHERE id = "${id}"`)
-
+        await db.delete().from("products").where({id: id})
 
         res.status(200).send("Produto deletado com sucesso!")
         
@@ -516,7 +508,7 @@ app.delete("/purchases/:id", async (req: Request, res: Response) => {
     try {
         const idToDelete = req.params.id
 
-        const [ result ] = await db.select("*").from("purchases").where({id: idToDelete})
+        const [ result ] = await db("purchases").where({id: idToDelete})
 
         if (!result) {
             res.status(404)
@@ -525,7 +517,7 @@ app.delete("/purchases/:id", async (req: Request, res: Response) => {
 
         await db.delete().from("purchases").where({id: idToDelete})
 
-        res.status(200).send({ message: "Compra deletada com sucesso!" })
+        res.status(200).send("Compra deletada com sucesso!")
 
     } catch (error) {
         console.log(error)
@@ -545,25 +537,31 @@ app.delete("/purchases/:id", async (req: Request, res: Response) => {
 
 
 
-app.put('/user/:id', (req: Request, res: Response) => {
+app.put('/user/:id', async (req: Request, res: Response) => {
     try {
         const id = req.params.id
 
         const newId = req.body.id
+        const newName = req.body.name
         const newEmail = req.body.email
         const newPassword = req.body.password
+ 
+        const [user] = await db("users").where({id: id})
 
-        const userFound = users.find((user) => {
-            return user.id === id
-        })
-
-        if(!userFound){
+        if(!user){
             res.status(404)
             throw new Error ("Usuário não encontrado. Verifique a id.")
         }
 
         if(newId !== undefined){
             if(typeof newId !== "string"){
+                res.status(400)
+                throw new Error ("O id do usuário deve ser uma string.")
+            }
+        }
+
+        if(newName !== undefined){
+            if(typeof newName !== "string"){
                 res.status(400)
                 throw new Error ("O id do usuário deve ser uma string.")
             }
@@ -587,11 +585,14 @@ app.put('/user/:id', (req: Request, res: Response) => {
             }
         }
         
-        if(userFound){
-            userFound.id = newId || userFound.id
-            userFound.email = newEmail || userFound.email
-            userFound.password = newPassword || userFound.password
+        const updateUser = {
+            id: newId || user.id,
+            name: newName || user.name,
+            email: newEmail || user.email,
+            password: newPassword || user.password
         }
+
+        await db("users").update(updateUser).where({id: id})
 
         res.status(200).send("Cadastro atualizado com sucesso")
         
@@ -602,27 +603,42 @@ app.put('/user/:id', (req: Request, res: Response) => {
             res.status(500)
         }
 
-        res.send(error.message)
+        if(error instanceof Error){
+            res.send(error.message)
+        } else {
+            res.send("Erro inesperado.")
+        }
     }
 })
 
 
 
 
-app.put('/product/:id', (req: Request, res: Response) => {
+app.put('/product/:id', async (req: Request, res: Response) => {
     try {
         const id = req.params.id 
 
+        const newId = req.body.id
         const newName = req.body.name
         const newPrice = req.body.price 
-        const newCategory = req.body.category as string| undefined
-    
-        const productFound = products.find((product) => product.id === id)
+        const newDescription = req.body.description
+        const newImageUrl = req.body.image_url
 
-        if(!productFound){
+        const [ product ] = await db("products").where({id: id})
+
+        if(!product){
             res.status(400)
             throw new Error ("Produto não encontrado. Verifique a id.")
         }
+
+
+        if(newId !== undefined){
+            if(typeof newId !== "string"){
+                res.status(400)
+                throw new Error ("O id do usuário deve ser uma string.")
+            }
+        }
+        
 
         if(newName !== undefined){
             if(typeof newName !== "string"){
@@ -638,11 +654,32 @@ app.put('/product/:id', (req: Request, res: Response) => {
             }
         }
 
-        if(productFound){
-            productFound.name = newName || productFound.name
-            productFound.price = isNaN(newPrice) ? productFound.price : newPrice
+
+        if(newDescription !== undefined){
+            if(typeof newDescription !== "string"){
+                res.status(400)
+                throw new Error ("O nome do produto deve ser uma string.")
+            }
+        }
+
+        
+        if(newImageUrl !== undefined){
+            if(typeof newImageUrl !== "string"){
+                res.status(400)
+                throw new Error ("O nome do produto deve ser uma string.")
+            }
+        }
+        
+        const updateProduct = {
+            id: newId || product.id,
+            name: newName || product.name,
+            price: isNaN(newPrice) ? product.price : newPrice,
+            description: newDescription || product.description,
+            image_url: newImageUrl|| product.image_url
         }
     
+        await db("products").update(updateProduct).where({id: id})
+
         res.status(200).send("Produto atualizado com sucesso")
         
     } catch (error:any) {
@@ -652,6 +689,10 @@ app.put('/product/:id', (req: Request, res: Response) => {
             res.status(500)
         }
 
-        res.send(error.message)
+        if(error instanceof Error){
+            res.send(error.message)
+        } else {
+            res.send("Erro inesperado.")
+        }
     }
 })
