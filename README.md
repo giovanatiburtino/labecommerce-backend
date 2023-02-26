@@ -14,11 +14,11 @@ Documentação da API de um ecommerce desenvolvida durante o Bootcamp da Labenu.
 + DELETE /products/:id - Endpoint que deleta um produto através de sua id.
 
 
-Link para acessar a API no Postman: 
+## 💿 Documentação Postman
 
-[Postman](https://documenter.getpostman.com/view/24461088/2s8ZDU6QLr)
+[Link postman](https://documenter.getpostman.com/view/24461088/2s8ZDU6QLr)
 
 
-## Autores
+## 👩‍💻 Autores
 
 [Linkedin](https://www.linkedin.com/ingiovana-ferreira-tiburtino-475486216/)
