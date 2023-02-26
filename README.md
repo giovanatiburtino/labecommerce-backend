@@ -1,17 +1,32 @@
 # Projeto Labecommerce
 
-Documentação da API de um ecommerce desenvolvida durante o Bootcamp da Labenu. Confira todos os endpoints criados e suas funcionalidades: 
+O Labecommerce é uma API de um ecommerce vinculado a um banco de dado. Confira todos os endpoints criados e suas funcionalidades: 
 
-+ GET /users/ - Endpoint que busca por todos os usuários cadastrados.
-+ GET /products/ - Endpoint que busca por todos os produtos cadastrados.
-+ GET /products/search?q=productName -- Endpoint que busca qualquer produto que contenha o nome inserido pelo usuário.
-+ POST /user/ - Endpoint que cria um novo usuário.
-+ POST /product/ - Endpoint que cria um novo produto.
-+ POST /purchases/ - Endpoint que cria uma nova compra.
-+ GET /products/:id - Endpoint que busca um produto através da sua id.
-+ GET /users/:id/purchases - Endpoint que busca uma compra ou mais compras do usuário através da sua id.
-+ DELETE /users/:id - Endpoint que deleta um usuário através da sua id.
-+ DELETE /products/:id - Endpoint que deleta um produto através de sua id.
+## Índice
+- <a href="#funcionalidades-do-projeto">Funcionalidades do Projeto</a>
+- <a href="banco-de-dados">Banco de dados</a>
+- <a href="#documentação-postman">Documentação</a>
+- <a href="#tecnologias-utilizadas">Tecnologias utilizadas</a>
+- <a href="#autores">Autores</a>
+
+## 🗃️ Banco de dados
+
+![](https://user-images.githubusercontent.com/29845719/214396608-ddcfd097-e615-44f9-acbe-f815f9abb83f.png)
+https://dbdiagram.io/d/63fba482296d97641d83d564
+
+
+## 💻 Funcionalidades do Projeto
+- Endpoints
+  + GET /users/ 
+  + GET /products/ 
+  + GET /products/search?q=productName 
+  + POST /user/
+  + POST /product/ 
+  + POST /purchases/
+  + GET /products/:id 
+  + GET /users/:id/purchases
+  + DELETE /users/:id 
+  + DELETE /products/:id
 
 
 ## 💿 Documentação Postman
