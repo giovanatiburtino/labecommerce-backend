@@ -2,13 +2,6 @@
 
 O Labecommerce é uma API de um ecommerce vinculado a um banco de dado. Confira todos os endpoints criados e suas funcionalidades: 
 
-## Índice
-- <a href="#funcionalidades-do-projeto">Funcionalidades do Projeto</a>
-- <a href="banco-de-dados">Banco de dados</a>
-- <a href="#documentação-postman">Documentação</a>
-- <a href="#tecnologias-utilizadas">Tecnologias utilizadas</a>
-- <a href="#autores">Autores</a>
-
 ## 🗃️ Banco de dados
 
 ![](https://user-images.githubusercontent.com/29845719/214396608-ddcfd097-e615-44f9-acbe-f815f9abb83f.png)
